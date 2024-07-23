@@ -19,7 +19,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 //apis
-app.use("api/v1/user", userRoute);
+app.use("/api/v1/user", userRoute);
 
 app.listen(8000, () => {
   connectDB();

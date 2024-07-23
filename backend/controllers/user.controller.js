@@ -8,20 +8,20 @@ export const register = async (req, res) => {
     if (!fullName || !email || !phoneNumber || !password || !role) {
       return res.status(400).json({ msg: "All fields are required" });
     }
-    const user = await User.findOne({ email });
+    let user = await User.findOne({ email });
     if (user) {
       return res.status(400).json({ msg: "Email already exists" });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await User.create({
+    user = await User.create({
       fullName,
       email,
       phoneNumber,
       password: hashedPassword,
       role,
     });
-    return res.status(201).json({ message: "Account created" });
+    return res.status(201).json({ message: "Account created", user });
   } catch (error) {
     console.log(error);
   }
@@ -51,7 +51,7 @@ export const login = async (req, res) => {
       userId: user._id,
     };
     const token = await jwt.sign(tokenData, process.env.SECRET_KEY, {
-      expire: "1d",
+      expiresIn: "1d",
     });
 
     user = {
@@ -73,6 +73,7 @@ export const login = async (req, res) => {
       .json({
         message: `Welcome back ${user.fullName}`,
         user,
+        token,
       });
   } catch (error) {
     console.log(error);
@@ -94,22 +95,27 @@ export const updateProfile = async (req, res) => {
   try {
     const { fullName, email, phoneNumber, bio, skills } = req.body;
     const file = req.file;
-    if (!fullName || !email || !phoneNumber || !bio || !skills) {
-      return res.status(400).json({ msg: "All fields are required" });
-    }
+    // if (!fullName || !email || !phoneNumber || !bio || !skills) {
+    //   return res.status(400).json({ msg: "All fields are required" });
+    // }
 
-    const skiilsArray = skills.split(",");
+    let skillsArray;
+    if (skills) {
+      skillsArray = skills.split(",");
+    }
     const userId = req.id;
     let user = await User.findById(userId);
 
     if (!user) {
       return res.status(404).json({ msg: "User not found" });
     }
-    user.fullName = fullName;
-    user.email = email;
-    user.phoneNumber = phoneNumber;
-    user.profile.bio = bio;
-    user.profile.skills = skiilsArray;
+
+    // Updating the profile
+    if (fullName) user.fullName = fullName;
+    if (email) user.email = email;
+    if (phoneNumber) user.phoneNumber = phoneNumber;
+    if (bio) user.profile.bio = bio;
+    if (skills) user.profile.skills = skillsArray;
 
     await user.save();
 
